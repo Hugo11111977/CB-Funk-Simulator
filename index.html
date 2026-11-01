@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CB-Funk Simulator</title>
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --bg-input: #334155;
+            --accent: #38bdf8;
+            --accent-hover: #0284c7;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --danger: #ef4444;
+            --success: #22c55e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            width: 380px;
+            min-width: 340px;
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.5);
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            background-color: #0b1329;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-title-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.2rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+        }
+
+        .sidebar-header p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .sidebar-content {
+            padding: 16px;
+            overflow-y: auto;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card {
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--accent);
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 8px;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-main);
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        input[type="text"]:focus, select:focus {
+            border-color: var(--accent);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-row > div {
+            flex: 1;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider-group input[type="range"] {
+            flex-grow: 1;
+            accent-color: var(--accent);
+        }
+
+        .slider-value {
+            font-size: 0.85rem;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: right;
+            color: var(--accent);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--accent);
+            color: #0f172a;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-hover);
+            color: white;
+        }
+
+        .btn-ptp {
+            background-color: #10b981;
+            color: #0f172a;
+        }
+
+        .btn-ptp:hover {
+            background-color: #059669;
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        .btn-group-vertical {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        #progress-container {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .progress-bar-bg {
+            background-color: var(--bg-input);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            background-color: var(--accent);
+            height: 100%;
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        #progress-text {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 4px;
+        }
+
+        #main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        #map {
+            flex-grow: 1;
+            width: 100%;
+            background-color: #000;
+        }
+
+        #profile-panel {
+            height: 240px;
+            background-color: var(--bg-card);
+            border-top: 1px solid var(--border);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .profile-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .profile-chart-container {
+            flex-grow: 1;
+            position: relative;
+        }
+
+        .s-meter-legend {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 6px;
+            z-index: 1000;
+            font-size: 0.75rem;
+            pointer-events: none;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 3px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        /* Rundes Info-Button Styling (In Header platziert) */
+        .info-btn {
+            width: 26px;
+            height: 26px;
+            min-width: 26px;
+            border-radius: 50%;
+            background-color: rgba(15, 23, 42, 0.85);
+            border: 1px solid var(--border);
+            color: var(--accent);
+            font-size: 0.9rem;
+            font-weight: bold;
+            font-family: serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+        }
+
+        .info-btn:hover {
+            background-color: var(--accent);
+            color: #0f172a;
+            border-color: var(--accent);
+        }
+
+        /* Info Modal Styling */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(3px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            width: 360px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        .modal-header h2 {
+            font-size: 1.1rem;
+            color: var(--accent);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .modal-close:hover {
+            color: var(--danger);
+        }
+
+        .modal-body {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .modal-row {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(15, 23, 42, 0.4);
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .modal-label {
+            color: var(--text-muted);
+        }
+
+        .modal-val {
+            font-weight: 600;
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <div class="header-title-container">
+                <button class="info-btn" id="btn-info" title="App-Informationen">i</button>
+                <h1>📻 CB-Funk Simulator</h1>
+            </div>
+            <p>27 MHz (Mehrfarbige Signalabstufung)</p>
+        </div>
+
+        <div class="sidebar-content">
+            <div class="card">
+                <div class="card-title">📍 Sender-Standort (TX)</div>
+                <div class="form-group">
+                    <div class="input-row">
+                        <div>
+                            <label>Breite (Lat)</label>
+                            <input type="text" id="tx-lat" value="48.2333" readonly>
+                        </div>
+                        <div>
+                            <label>Länge (Lng)</label>
+                            <input type="text" id="tx-lng" value="8.8360" readonly>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn" id="btn-pick" style="margin-top:8px;">🎯 Sender-Standort wählen</button>
+            </div>
+
+            <div class="card">
+                <div class="card-title">⚡ Funkgeräte-Parameter</div>
+                <div class="form-group">
+                    <label>Sendeleistung (Watt)</label>
+                    <div class="slider-group">
+                        <input type="range" id="tx-power" min="1" max="100" value="25">
+                        <span class="slider-value" id="tx-power-val">25 W</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Antennentyp</label>
+                    <select id="ant-type">
+                        <option value="0">1/4 Lambda (Groundplane - 0 dBd / 2.15 dBi)</option>
+                        <option value="1.7">1/2 Lambda Vertikal (+1.7 dBd / 3.85 dBi)</option>
+                        <option value="3.0" selected>5/8 Lambda Vertikal (+3.0 dBd / 5.15 dBi)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Sender-Antennenhöhe über Grund (m)</label>
+                    <div class="slider-group">
+                        <input type="range" id="tx-height" min="2" max="30" value="11">
+                        <span class="slider-value" id="tx-height-val">11 m</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Empfänger-Antennenhöhe (RX) (m)</label>
+                    <div class="slider-group">
+                        <input type="range" id="rx-height" min="1" max="15" value="9">
+                        <span class="slider-value" id="rx-height-val">9 m</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Empfänger-Empfindlichkeit (Squelch Cutoff)</label>
+                    <div class="slider-group">
+                        <input type="range" id="rx-cutoff" min="-120" max="-70" value="-120" step="1">
+                        <span class="slider-value" id="rx-cutoff-val">-120 dBm</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">⚙️ Geländedämpfung & Raster</div>
+                <div class="form-group">
+                    <label>Hindernisdämpfung (dB pro Meter Versperrung)</label>
+                    <div class="slider-group">
+                        <input type="range" id="obstacle-loss" min="0.0" max="2.0" value="0.3" step="0.1">
+                        <span class="slider-value" id="obstacle-loss-val">0.3 dB/m</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Flächen-Rasterabstand (Auflösung)</label>
+                    <div class="slider-group">
+                        <input type="range" id="grid-step" min="200" max="1000" value="400" step="50">
+                        <span class="slider-value" id="grid-step-val">400 m</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Simulations-Suchbereich (km)</label>
+                    <div class="slider-group">
+                        <input type="range" id="sim-radius" min="10" max="200" value="100" step="5">
+                        <span class="slider-value" id="sim-radius-val">100 km</span>
+                    </div>
+                </div>
+                
+                <div class="btn-group-vertical" style="margin-top:10px;">
+                    <button class="btn btn-ptp" id="btn-ptp">⚡ PtP-Funkstrecke simulieren</button>
+                    <button class="btn" id="btn-calc">🚀 Flächen-Simulation Starten</button>
+                    <button class="btn btn-danger" id="btn-cancel" style="display:none;">⛔ Abbrechen</button>
+                </div>
+
+                <div id="progress-container">
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="progress-fill"></div>
+                    </div>
+                    <div id="progress-text">Berechne... 0%</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">💾 Export-Funktionen</div>
+                <div class="btn-group-vertical">
+                    <button class="btn" onclick="exportToPNG()">🖼️ Als PNG-Bild speichern</button>
+                    <button class="btn btn-ptp" onclick="exportToKML()">🌍 Für Google Earth (KML) exportieren</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div id="map"></div>
+
+        <div class="s-meter-legend">
+            <div style="font-weight:bold; margin-bottom:5px; color:var(--accent);">S-Meter Signalstärke</div>
+            <div class="legend-item"><div class="legend-color" style="background:#00ff00;"></div> S9+ (≥ -73 dBm)</div>
+            <div class="legend-item"><div class="legend-color" style="background:#7fff00;"></div> S7 - S8 (-85 bis -73 dBm)</div>
+            <div class="legend-item"><div class="legend-color" style="background:#ffff00;"></div> S5 - S6 (-93 bis -85 dBm)</div>
+            <div class="legend-item"><div class="legend-color" style="background:#ff7f00;"></div> S3 - S4 (-101 bis -93 dBm)</div>
+            <div class="legend-item"><div class="legend-color" style="background:#ff0000;"></div> S1 - S2 (-105 bis -101 dBm)</div>
+        </div>
+
+        <div id="profile-panel">
+            <div class="profile-header">
+                <span id="profile-title">Geländeprofil</span>
+                <span id="profile-info">Klicke auf die Karte, um eine Funkstrecke zu testen.</span>
+            </div>
+            <div class="profile-chart-container">
+                <canvas id="profileChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Popup Modal -->
+    <div class="modal-overlay" id="info-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>ℹ️ Über diese App</h2>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-row">
+                    <span class="modal-label">Designer & Entwickler:</span>
+                    <span class="modal-val">Station Giftzwerk</span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Tester & Ideengeber:</span>
+                    <span class="modal-val">Station hansi zwo</span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Version:</span>
+                    <span class="modal-val">0.1</span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Entwicklungsstatus:</span>
+                    <span class="modal-val">Alpha</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        L.BoxGridLayer = L.Layer.extend({
+            initialize: function (options) {
+                L.setOptions(this, options);
+                this._gridPoints = [];
+            },
+            onAdd: function (map) {
+                this._map = map;
+                if (!this._canvas) this._initCanvas();
+                map.getPanes().overlayPane.appendChild(this._canvas);
+                map.on('moveend zoomend reset viewreset', this._reset, this);
+                this._reset();
+            },
+            onRemove: function (map) {
+                map.getPanes().overlayPane.removeChild(this._canvas);
+                map.off('moveend zoomend reset viewreset', this._reset, this);
+            },
+            _initCanvas: function () {
+                const canvas = this._canvas = L.DomUtil.create('canvas', 'leaflet-signal-layer leaflet-zoom-animated');
+                canvas.style.pointerEvents = 'none';
+            },
+            _reset: function () {
+                const topLeft = this._map.containerPointToLayerPoint([0, 0]);
+                L.DomUtil.setPosition(this._canvas, topLeft);
+                const size = this._map.getSize();
+                this._canvas.width = size.x;
+                this._canvas.height = size.y;
+                this.redraw();
+            },
+            setGridPoints: function (points) {
+                this._gridPoints = points;
+                this.redraw();
+            },
+            clear: function () {
+                this._gridPoints = [];
+                this.redraw();
+            },
+            redraw: function () {
+                if (!this._map || !this._canvas) return;
+                const ctx = this._canvas.getContext('2d');
+                ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+                const bounds = this._map.getBounds();
+
+                for (let i = 0; i < this._gridPoints.length; i++) {
+                    const p = this._gridPoints[i];
+                    if (!bounds.contains([p.lat, p.lng])) continue;
+
+                    const point = this._map.latLngToContainerPoint([p.lat, p.lng]);
+                    const edgePoint = this._map.latLngToContainerPoint([p.lat + 0.003, p.lng + 0.003]);
+                    const sizePx = Math.max(6, Math.abs(edgePoint.x - point.x));
+
+                    ctx.beginPath();
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = 0.4;
+                    ctx.fillRect(point.x - sizePx/2, point.y - sizePx/2, sizePx, sizePx);
+                }
+            }
+        });
+
+        L.boxGridLayer = function (options) { return new L.BoxGridLayer(options); };
+
+        let map, txMarker, rxMarker, boxGridLayer, profileChart;
+        let isPicking = false, isCalculating = false, shouldCancel = false;
+        let txLat = 48.2333, txLng = 8.8360, rxLat = null, rxLng = null;
+
+        const elevationTileCache = new Map();
+
+        function initMap() {
+            map = L.map('map', { center: [txLat, txLng], zoom: 10 });
+
+            // OpenTopoMap als kontrastreicher Basiskarten-Layer
+            L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                maxZoom: 17,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende, <a href="http://viewfinderpanoramas.org">SRTM</a> | Kartendarstellung: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+            }).addTo(map);
+
+            boxGridLayer = L.boxGridLayer().addTo(map);
+
+            txMarker = L.marker([txLat, txLng], { draggable: true }).addTo(map).bindPopup("Sender (TX)");
+            txMarker.on('dragend', e => updateTXPos(e.target.getLatLng().lat, e.target.getLatLng().lng));
+            map.on('click', onMapClick);
+        }
+
+        function updateTXPos(lat, lng) {
+            txLat = lat; txLng = lng;
+            document.getElementById('tx-lat').value = lat.toFixed(4);
+            document.getElementById('tx-lng').value = lng.toFixed(4);
+            txMarker.setLatLng([lat, lng]);
+        }
+
+        function onMapClick(e) {
+            if (isPicking) {
+                updateTXPos(e.latlng.lat, e.latlng.lng);
+                isPicking = false;
+                document.getElementById('btn-pick').innerText = "🎯 Sender-Standort wählen";
+                document.getElementById('btn-pick').classList.remove('btn-danger');
+                return;
+            }
+            rxLat = e.latlng.lat; rxLng = e.latlng.lng;
+            if (!rxMarker) {
+                rxMarker = L.marker([rxLat, rxLng], {
+                    icon: L.divIcon({ className: 'custom-rx', html: '<div style="font-size: 20px;">🚩</div>', iconSize: [20, 20], iconAnchor: [10, 20] })
+                }).addTo(map);
+            } else {
+                rxMarker.setLatLng([rxLat, rxLng]);
+            }
+            calculateProfile(txLat, txLng, rxLat, rxLng);
+        }
+
+        async function getElevation(lat, lng) {
+            const zoom = 11;
+            const x = Math.floor((lng + 180) / 360 * Math.pow(2, zoom));
+            const latRad = lat * Math.PI / 180;
+            const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * Math.pow(2, zoom));
+            const tileKey = `${zoom}/${x}/${y}`;
+
+            let canvasContext;
+            if (elevationTileCache.has(tileKey)) {
+                canvasContext = elevationTileCache.get(tileKey);
+            } else {
+                const url = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${tileKey}.png`;
+                try {
+                    const img = new Image();
+                    img.crossOrigin = "Anonymous";
+                    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+                    const cvs = document.createElement('canvas'); cvs.width = 256; cvs.height = 256;
+                    canvasContext = cvs.getContext('2d');
+                    canvasContext.drawImage(img, 0, 0);
+                    elevationTileCache.set(tileKey, canvasContext);
+                } catch (err) { return 300; }
+            }
+
+            const px = Math.floor(((lng + 180) / 360 * Math.pow(2, zoom) - x) * 256);
+            const py = Math.floor(((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * Math.pow(2, zoom) - y) * 256);
+            const pixel = canvasContext.getImageData(px, py, 1, 1).data;
+            return (pixel[0] * 256 + pixel[1] + pixel[2] / 256) - 32768;
+        }
+
+        function calculateSimpleSignal(distKm, pWatts, antGainDbd, maxPenetrationMeters, dbPerMeter) {
+            const pDbm = 10 * Math.log10(pWatts * 1000) + antGainDbd;
+            const fspl = 20 * Math.log10(Math.max(0.05, distKm)) + 20 * Math.log10(27) + 32.44;
+            const obstacleLoss = maxPenetrationMeters > 0 ? (maxPenetrationMeters * dbPerMeter) : 0.0;
+
+            return pDbm - fspl - obstacleLoss;
+        }
+
+        function dbmToColor(dbm) {
+            const cutoff = parseFloat(document.getElementById('rx-cutoff').value);
+            if (dbm < cutoff) return null; 
+
+            const stops = [
+                { dbm: -73,  r: 0,   g: 255, b: 0   },
+                { dbm: -85,  r: 127, g: 255, b: 0   },
+                { dbm: -93,  r: 255, g: 255, b: 0   },
+                { dbm: -101, r: 255, g: 127, b: 0   },
+                { dbm: -105, r: 255, g: 0,   b: 0   }
+            ];
+
+            if (dbm >= stops[0].dbm) return `rgb(${stops[0].r},${stops[0].g},${stops[0].b})`;
+
+            for (let i = 0; i < stops.length - 1; i++) {
+                const s1 = stops[i], s2 = stops[i + 1];
+                if (dbm <= s1.dbm && dbm >= s2.dbm) {
+                    const f = (dbm - s2.dbm) / (s1.dbm - s2.dbm);
+                    return `rgb(${Math.round(s2.r + f * (s1.r - s2.r))},${Math.round(s2.g + f * (s1.g - s2.g))},${Math.round(s2.b + f * (s1.b - s2.b))})`;
+                }
+            }
+            return `rgb(${stops[stops.length - 1].r},${stops[stops.length - 1].g},${stops[stops.length - 1].b})`;
+        }
+
+        async function runPtpSimulation() {
+            if (!rxLat || !rxLng) {
+                alert("Bitte zuerst durch einen Klick auf die Karte ein Ziel (Ziel-Marker 🚩) festlegen!");
+                return;
+            }
+
+            boxGridLayer.clear();
+
+            const pWatts = parseFloat(document.getElementById('tx-power').value);
+            const antGain = parseFloat(document.getElementById('ant-type').value);
+            const txH = parseFloat(document.getElementById('tx-height').value);
+            const rxH = parseFloat(document.getElementById('rx-height').value);
+            const dbPerMeter = parseFloat(document.getElementById('obstacle-loss').value);
+
+            const distKm = map.distance([txLat, txLng], [rxLat, rxLng]) / 1000;
+            const ptpSamples = Math.min(2000, Math.max(100, Math.round((distKm * 1000) / 5.0)));
+
+            const txAlt = await getElevation(txLat, txLng);
+            const rxAlt = await getElevation(rxLat, rxLng);
+
+            const txAbsH = txAlt + txH;
+            const rxAbsH = rxAlt + rxH;
+
+            let maxObstaclePenetration = 0;
+            const points = [];
+
+            for (let i = 0; i <= ptpSamples; i++) {
+                const fraction = i / ptpSamples;
+                const curLat = txLat + (rxLat - txLat) * fraction;
+                const curLng = txLng + (rxLng - txLng) * fraction;
+
+                const rawAlt = await getElevation(curLat, curLng);
+                const currentDist = fraction * distKm;
+
+                const earthDrop = (currentDist * (distKm - currentDist)) / 12.74;
+                const losAlt = txAbsH + (rxAbsH - txAbsH) * fraction - earthDrop;
+
+                const penetration = rawAlt - losAlt;
+                if (penetration > maxObstaclePenetration) maxObstaclePenetration = penetration;
+
+                const rxPower = calculateSimpleSignal(currentDist, pWatts, antGain, maxObstaclePenetration, dbPerMeter);
+                const color = dbmToColor(rxPower) || '#000000';
+
+                points.push({ lat: curLat, lng: curLng, color: color });
+            }
+
+            boxGridLayer.setGridPoints(points);
+            calculateProfile(txLat, txLng, rxLat, rxLng);
+        }
+
+        async function runSimulation() {
+            if (isCalculating) return;
+            isCalculating = true; shouldCancel = false;
+
+            document.getElementById('btn-calc').style.display = 'none';
+            document.getElementById('btn-cancel').style.display = 'block';
+            document.getElementById('progress-container').style.display = 'block';
+
+            boxGridLayer.clear();
+
+            const radiusKm = parseFloat(document.getElementById('sim-radius').value);
+            const stepMeters = parseFloat(document.getElementById('grid-step').value);
+            const pWatts = parseFloat(document.getElementById('tx-power').value);
+            const antGain = parseFloat(document.getElementById('ant-type').value);
+            const txH = parseFloat(document.getElementById('tx-height').value);
+            const rxH = parseFloat(document.getElementById('rx-height').value);
+            const dbPerMeter = parseFloat(document.getElementById('obstacle-loss').value);
+
+            const txAlt = await getElevation(txLat, txLng);
+            const txAbsH = txAlt + txH;
+
+            const latDegreePerKm = 1 / 111.32;
+            const lngDegreePerKm = 1 / (111.32 * Math.cos(txLat * Math.PI / 180));
+
+            const radiusLatDeg = radiusKm * latDegreePerKm;
+            const radiusLngDeg = radiusKm * lngDegreePerKm;
+            const stepLatDeg = (stepMeters / 1000) * latDegreePerKm;
+            const stepLngDeg = (stepMeters / 1000) * lngDegreePerKm;
+
+            const allGridPoints = [];
+            let totalSteps = Math.ceil((2 * radiusLatDeg) / stepLatDeg);
+            let currentStep = 0;
+
+            for (let lat = txLat - radiusLatDeg; lat <= txLat + radiusLatDeg; lat += stepLatDeg) {
+                if (shouldCancel) break;
+                currentStep++;
+
+                for (let lng = txLng - radiusLngDeg; lng <= txLng + radiusLngDeg; lng += stepLngDeg) {
+                    const distKm = map.distance([txLat, txLng], [lat, lng]) / 1000;
+                    if (distKm < 0.1) continue; 
+
+                    const rxAlt = await getElevation(lat, lng);
+                    const rxAbsH = rxAlt + rxH;
+
+                    const samples = Math.max(10, Math.round(distKm * 3));
+                    let maxObstaclePenetration = 0;
+
+                    for (let s = 1; s <= samples; s++) {
+                        const f = s / samples;
+                        const cLat = txLat + (lat - txLat) * f;
+                        const cLng = txLng + (lng - txLng) * f;
+                        const cAlt = await getElevation(cLat, cLng);
+                        const curDist = f * distKm;
+
+                        const earthDrop = (curDist * (distKm - curDist)) / 12.74;
+                        const losAlt = txAbsH + ((rxAbsH - txAbsH) * f) - earthDrop;
+
+                        const penetration = cAlt - losAlt;
+                        if (penetration > maxObstaclePenetration) {
+                            maxObstaclePenetration = penetration;
+                        }
+                    }
+
+                    const rxPower = calculateSimpleSignal(distKm, pWatts, antGain, maxObstaclePenetration, dbPerMeter);
+                    const color = dbmToColor(rxPower);
+
+                    if (color) {
+                        allGridPoints.push({ lat: lat, lng: lng, color: color });
+                    }
+                }
+
+                const pct = Math.min(100, Math.floor((currentStep / totalSteps) * 100));
+                document.getElementById('progress-fill').style.width = pct + '%';
+                document.getElementById('progress-text').innerText = `Berechne Raster... ${pct}%`;
+
+                if (currentStep % 2 === 0) await new Promise(r => setTimeout(r, 0));
+            }
+
+            boxGridLayer.setGridPoints(allGridPoints);
+
+            isCalculating = false;
+            document.getElementById('btn-calc').style.display = 'block';
+            document.getElementById('btn-cancel').style.display = 'none';
+            document.getElementById('progress-container').style.display = 'none';
+        }
+
+        function exportToPNG() {
+            if (!boxGridLayer || !boxGridLayer._canvas) return;
+            const a = document.createElement('a');
+            a.href = boxGridLayer._canvas.toDataURL("image/png");
+            a.download = `CB_Funk_Flaeche.png`;
+            a.click();
+        }
+
+        function exportToKML() {
+            if (!boxGridLayer || boxGridLayer._gridPoints.length === 0) return alert("Keine Daten!");
+            let kml = `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><Folder><name>CB Flaeche</name>`;
+            boxGridLayer._gridPoints.forEach(pt => {
+                kml += `<Placemark><Point><coordinates>${pt.lng},${pt.lat},0</coordinates></Point></Placemark>`;
+            });
+            kml += `</Folder></Document></kml>`;
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' }));
+            a.download = `Simulation_Flaeche.kml`;
+            a.click();
+        }
+
+        async function calculateProfile(lat1, lng1, lat2, lng2) {
+            const numSamples = 100;
+            const profileDataRaw = [], sightLineData = [], labels = [];
+            const distKm = map.distance([lat1, lng1], [lat2, lng2]) / 1000;
+            const txAlt = await getElevation(lat1, lng1), rxAlt = await getElevation(lat2, lng2);
+            const txAbsH = txAlt + parseFloat(document.getElementById('tx-height').value);
+            const rxAbsH = rxAlt + parseFloat(document.getElementById('rx-height').value);
+
+            for (let i = 0; i <= numSamples; i++) {
+                const f = i / numSamples;
+                const cLat = lat1 + (lat2 - lat1) * f, cLng = lng1 + (lng2 - lng1) * f;
+                const rawAlt = await getElevation(cLat, cLng);
+                const curDist = f * distKm;
+                profileDataRaw.push(rawAlt);
+                sightLineData.push(txAbsH + (rxAbsH - txAbsH) * f - (curDist * (distKm - curDist)) / 12.74);
+                labels.push(`${curDist.toFixed(1)} km`);
+            }
+            renderChart(labels, profileDataRaw, sightLineData);
+        }
+
+        function renderChart(labels, terrainData, losData) {
+            const ctx = document.getElementById('profileChart').getContext('2d');
+            if (profileChart) profileChart.destroy();
+            profileChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Sichtlinie (LOS)', data: losData, borderColor: '#ef4444', borderDash: [5, 5], pointRadius: 0, fill: false },
+                        { label: 'Gelände', data: terrainData, borderColor: '#22c55e', borderWidth: 2, pointRadius: 0, fill: false }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+
+            document.getElementById('tx-power').addEventListener('input', (e) => document.getElementById('tx-power-val').innerText = e.target.value + ' W');
+            document.getElementById('tx-height').addEventListener('input', (e) => document.getElementById('tx-height-val').innerText = e.target.value + ' m');
+            document.getElementById('rx-height').addEventListener('input', (e) => document.getElementById('rx-height-val').innerText = e.target.value + ' m');
+            document.getElementById('rx-cutoff').addEventListener('input', (e) => document.getElementById('rx-cutoff-val').innerText = e.target.value + ' dBm');
+            document.getElementById('sim-radius').addEventListener('input', (e) => document.getElementById('sim-radius-val').innerText = e.target.value + ' km');
+            document.getElementById('grid-step').addEventListener('input', (e) => document.getElementById('grid-step-val').innerText = e.target.value + ' m');
+            document.getElementById('obstacle-loss').addEventListener('input', (e) => document.getElementById('obstacle-loss-val').innerText = e.target.value + ' dB/m');
+
+            document.getElementById('btn-ptp').addEventListener('click', runPtpSimulation);
+            document.getElementById('btn-calc').addEventListener('click', runSimulation);
+            document.getElementById('btn-cancel').addEventListener('click', () => { shouldCancel = true; });
+            document.getElementById('btn-pick').addEventListener('click', () => {
+                isPicking = !isPicking;
+                const btn = document.getElementById('btn-pick');
+                btn.innerText = isPicking ? "Klicke auf die Karte..." : "🎯 Sender-Standort wählen";
+                btn.classList.toggle('btn-danger', isPicking);
+            });
+
+            // Info Modal Event Listeners
+            const modal = document.getElementById('info-modal');
+            document.getElementById('btn-info').addEventListener('click', () => modal.style.display = 'flex');
+            document.getElementById('modal-close').addEventListener('click', () => modal.style.display = 'none');
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.style.display = 'none';
+            });
+        });
+    </script>
+</body>
+</html>
