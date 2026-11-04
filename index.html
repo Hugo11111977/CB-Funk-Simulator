@@ -297,7 +297,6 @@
             border-radius: 2px;
         }
 
-        /* Rundes Info-Button Styling (In Header platziert) */
         .info-btn {
             width: 26px;
             height: 26px;
@@ -323,7 +322,6 @@
             border-color: var(--accent);
         }
 
-        /* Info Modal Styling */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -410,7 +408,7 @@
                 <button class="info-btn" id="btn-info" title="App-Informationen">i</button>
                 <h1>📻 CB-Funk Simulator</h1>
             </div>
-            <p>27 MHz (Mehrfarbige Signalabstufung)</p>
+            <p>27 MHz (Bodenwellen-Modell)</p>
         </div>
 
         <div class="sidebar-content">
@@ -420,11 +418,11 @@
                     <div class="input-row">
                         <div>
                             <label>Breite (Lat)</label>
-                            <input type="text" id="tx-lat" value="48.2333" readonly>
+                            <input type="text" id="tx-lat" value="48.2334" readonly>
                         </div>
                         <div>
                             <label>Länge (Lng)</label>
-                            <input type="text" id="tx-lng" value="8.8360" readonly>
+                            <input type="text" id="tx-lng" value="8.8359" readonly>
                         </div>
                     </div>
                 </div>
@@ -436,8 +434,8 @@
                 <div class="form-group">
                     <label>Sendeleistung (Watt)</label>
                     <div class="slider-group">
-                        <input type="range" id="tx-power" min="0.1" max="200" value="25" step="0.1">
-                        <span class="slider-value" id="tx-power-val">25 W</span>
+                        <input type="range" id="tx-power" min="0.1" max="200" value="23.1" step="0.1">
+                        <span class="slider-value" id="tx-power-val">23.1 W</span>
                     </div>
                 </div>
                 <div class="form-group">
@@ -474,26 +472,34 @@
             <div class="card">
                 <div class="card-title">⚙️ Geländedämpfung & Raster</div>
                 <div class="form-group">
+                    <label>Pfadverlust-Exponent n (Bodenwelle)</label>
+                    <div class="slider-group">
+                        <input type="range" id="path-loss-n" min="2.00" max="4.00" value="3.30" step="0.05">
+                        <span class="slider-value" id="path-loss-n-val">3.30</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
                     <label>Hindernisdämpfung (dB pro Meter Versperrung)</label>
                     <div class="slider-group">
-                        <input type="range" id="obstacle-loss" min="0.10" max="1.00" value="0.47" step="0.01">
-                        <span class="slider-value" id="obstacle-loss-val">0.47 dB/m</span>
+                        <input type="range" id="obstacle-loss" min="0.10" max="1.00" value="0.15" step="0.01">
+                        <span class="slider-value" id="obstacle-loss-val">0.15 dB/m</span>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Flächen-Rasterabstand (Auflösung)</label>
                     <div class="slider-group">
-                        <input type="range" id="grid-step" min="200" max="1000" value="400" step="50">
-                        <span class="slider-value" id="grid-step-val">400 m</span>
+                        <input type="range" id="grid-step" min="200" max="1000" value="500" step="50">
+                        <span class="slider-value" id="grid-step-val">500 m</span>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Simulations-Suchbereich (km)</label>
                     <div class="slider-group">
-                        <input type="range" id="sim-radius" min="10" max="200" value="100" step="5">
-                        <span class="slider-value" id="sim-radius-val">100 km</span>
+                        <input type="range" id="sim-radius" min="10" max="200" value="50" step="5">
+                        <span class="slider-value" id="sim-radius-val">50 km</span>
                     </div>
                 </div>
                 
@@ -525,12 +531,12 @@
         <div id="map"></div>
 
         <div class="s-meter-legend">
-            <div style="font-weight:bold; margin-bottom:5px; color:var(--accent);">S-Meter Signalstärke</div>
-            <div class="legend-item"><div class="legend-color" style="background:#00ff00;"></div> S9+ (≥ -73 dBm)</div>
+            <div style="font-weight:bold; margin-bottom:5px; color:var(--accent);">S-Meter Signalstärke (IARU)</div>
+            <div class="legend-item"><div class="legend-color" style="background:#00ff00;"></div> S9 (≥ -73 dBm)</div>
             <div class="legend-item"><div class="legend-color" style="background:#7fff00;"></div> S7 - S8 (-85 bis -73 dBm)</div>
-            <div class="legend-item"><div class="legend-color" style="background:#ffff00;"></div> S5 - S6 (-93 bis -85 dBm)</div>
-            <div class="legend-item"><div class="legend-color" style="background:#ff7f00;"></div> S3 - S4 (-101 bis -93 dBm)</div>
-            <div class="legend-item"><div class="legend-color" style="background:#ff0000;"></div> S1 - S2 (-105 bis -101 dBm)</div>
+            <div class="legend-item"><div class="legend-color" style="background:#ffff00;"></div> S5 - S6 (-97 bis -85 dBm)</div>
+            <div class="legend-item"><div class="legend-color" style="background:#ff7f00;"></div> S3 - S4 (-109 bis -97 dBm)</div>
+            <div class="legend-item"><div class="legend-color" style="background:#ff0000;"></div> S1 - S2 (-121 bis -109 dBm)</div>
         </div>
 
         <div id="profile-panel">
@@ -562,7 +568,7 @@
                 </div>
                 <div class="modal-row">
                     <span class="modal-label">Version:</span>
-                    <span class="modal-val">0.1</span>
+                    <span class="modal-val">0.5 (Standardwerte aktualisiert)</span>
                 </div>
                 <div class="modal-row">
                     <span class="modal-label">Entwicklungsstatus:</span>
@@ -635,14 +641,13 @@
 
         let map, txMarker, rxMarker, boxGridLayer, profileChart;
         let isPicking = false, isCalculating = false, shouldCancel = false;
-        let txLat = 48.2333, txLng = 8.8360, rxLat = null, rxLng = null;
+        let txLat = 48.2334, txLng = 8.8359, rxLat = null, rxLng = null;
 
         const elevationTileCache = new Map();
 
         function initMap() {
             map = L.map('map', { center: [txLat, txLng], zoom: 10 });
 
-            // OpenTopoMap als kontrastreicher Basiskarten-Layer
             L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
                 maxZoom: 17,
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende, <a href="http://viewfinderpanoramas.org">SRTM</a> | Kartendarstellung: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
@@ -710,24 +715,43 @@
             return (pixel[0] * 256 + pixel[1] + pixel[2] / 256) - 32768;
         }
 
-        function calculateSimpleSignal(distKm, pWatts, antGainDbd, maxPenetrationMeters, dbPerMeter) {
-            const pDbm = 10 * Math.log10(pWatts * 1000) + antGainDbd;
-            const fspl = 20 * Math.log10(Math.max(0.05, distKm)) + 20 * Math.log10(27) + 32.44;
+        function calculateGroundwaveSignal(distKm, pWatts, antGainDbd, txH, rxH, maxPenetrationMeters, dbPerMeter, nExp) {
+            const d = Math.max(10, distKm * 1000); // Distanz in Metern
+            const freqMHz = 27.185;
+            
+            // Antennengewinne in dBi
+            const gTxDbi = antGainDbd + 2.15;
+            const gRxDbi = 2.15; // Standard-Groundplane am Empfänger
+            const pDbm = 10 * Math.log10(pWatts * 1000);
+            
+            // Einstellbarer Pfadverlust-Exponent n
+            const n = nExp !== undefined ? nExp : 3.30;
+            
+            // Dämpfung über Grund mit n-Exponent
+            const pathLossDb = (20 * Math.log10(freqMHz)) + (10 * n * Math.log10(d)) - 27.55 - gTxDbi - gRxDbi;
+            
+            // Höhengewinn gegenüber Standardboden (Bezug 2 m)
+            const heightGainDb = 10 * Math.log10(Math.max(1, txH) / 2.0) + 10 * Math.log10(Math.max(1, rxH) / 2.0);
+            
+            // Zusatzverluste (Kabel & Stecker, Umgebungsclutter, Geländehindernisse)
+            const cableLoss = 3.0;   // ~1.5 dB je Seite
+            const clutterLoss = 3.0; // Bebauung / Bewuchs im Nahfeld
             const obstacleLoss = maxPenetrationMeters > 0 ? (maxPenetrationMeters * dbPerMeter) : 0.0;
-
-            return pDbm - fspl - obstacleLoss;
+            
+            return pDbm - pathLossDb + heightGainDb - cableLoss - clutterLoss - obstacleLoss;
         }
 
         function dbmToColor(dbm) {
             const cutoff = parseFloat(document.getElementById('rx-cutoff').value);
             if (dbm < cutoff) return null; 
 
+            // Exakte IARU-Schwellenwerte für HF / 27 MHz (6 dB pro S-Stufe)
             const stops = [
-                { dbm: -73,  r: 0,   g: 255, b: 0   },
-                { dbm: -85,  r: 127, g: 255, b: 0   },
-                { dbm: -93,  r: 255, g: 255, b: 0   },
-                { dbm: -101, r: 255, g: 127, b: 0   },
-                { dbm: -105, r: 255, g: 0,   b: 0   }
+                { dbm: -73,  r: 0,   g: 255, b: 0   }, // S9
+                { dbm: -85,  r: 127, g: 255, b: 0   }, // S7
+                { dbm: -97,  r: 255, g: 255, b: 0   }, // S5
+                { dbm: -109, r: 255, g: 127, b: 0   }, // S3
+                { dbm: -121, r: 255, g: 0,   b: 0   }  // S1
             ];
 
             if (dbm >= stops[0].dbm) return `rgb(${stops[0].r},${stops[0].g},${stops[0].b})`;
@@ -755,6 +779,7 @@
             const txH = parseFloat(document.getElementById('tx-height').value);
             const rxH = parseFloat(document.getElementById('rx-height').value);
             const dbPerMeter = parseFloat(document.getElementById('obstacle-loss').value);
+            const nExp = parseFloat(document.getElementById('path-loss-n').value);
 
             const distKm = map.distance([txLat, txLng], [rxLat, rxLng]) / 1000;
             const ptpSamples = Math.min(2000, Math.max(100, Math.round((distKm * 1000) / 5.0)));
@@ -782,7 +807,7 @@
                 const penetration = rawAlt - losAlt;
                 if (penetration > maxObstaclePenetration) maxObstaclePenetration = penetration;
 
-                const rxPower = calculateSimpleSignal(currentDist, pWatts, antGain, maxObstaclePenetration, dbPerMeter);
+                const rxPower = calculateGroundwaveSignal(currentDist, pWatts, antGain, txH, rxH, maxObstaclePenetration, dbPerMeter, nExp);
                 const color = dbmToColor(rxPower) || '#000000';
 
                 points.push({ lat: curLat, lng: curLng, color: color });
@@ -809,6 +834,7 @@
             const txH = parseFloat(document.getElementById('tx-height').value);
             const rxH = parseFloat(document.getElementById('rx-height').value);
             const dbPerMeter = parseFloat(document.getElementById('obstacle-loss').value);
+            const nExp = parseFloat(document.getElementById('path-loss-n').value);
 
             const txAlt = await getElevation(txLat, txLng);
             const txAbsH = txAlt + txH;
@@ -855,7 +881,7 @@
                         }
                     }
 
-                    const rxPower = calculateSimpleSignal(distKm, pWatts, antGain, maxObstaclePenetration, dbPerMeter);
+                    const rxPower = calculateGroundwaveSignal(distKm, pWatts, antGain, txH, rxH, maxObstaclePenetration, dbPerMeter, nExp);
                     const color = dbmToColor(rxPower);
 
                     if (color) {
@@ -945,6 +971,7 @@
             document.getElementById('sim-radius').addEventListener('input', (e) => document.getElementById('sim-radius-val').innerText = e.target.value + ' km');
             document.getElementById('grid-step').addEventListener('input', (e) => document.getElementById('grid-step-val').innerText = e.target.value + ' m');
             document.getElementById('obstacle-loss').addEventListener('input', (e) => document.getElementById('obstacle-loss-val').innerText = parseFloat(e.target.value).toFixed(2) + ' dB/m');
+            document.getElementById('path-loss-n').addEventListener('input', (e) => document.getElementById('path-loss-n-val').innerText = parseFloat(e.target.value).toFixed(2));
 
             document.getElementById('btn-ptp').addEventListener('click', runPtpSimulation);
             document.getElementById('btn-calc').addEventListener('click', runSimulation);
@@ -956,7 +983,6 @@
                 btn.classList.toggle('btn-danger', isPicking);
             });
 
-            // Info Modal Event Listeners
             const modal = document.getElementById('info-modal');
             document.getElementById('btn-info').addEventListener('click', () => modal.style.display = 'flex');
             document.getElementById('modal-close').addEventListener('click', () => modal.style.display = 'none');
