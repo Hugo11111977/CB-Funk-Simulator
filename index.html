@@ -398,6 +398,21 @@
             font-weight: 600;
             color: var(--accent);
         }
+
+        /* Tooltip Style for Signal Hover */
+        .signal-tooltip {
+            background: rgba(15, 23, 42, 0.92) !important;
+            border: 1px solid var(--accent) !important;
+            color: var(--text-main) !important;
+            font-size: 0.8rem !important;
+            border-radius: 6px !important;
+            padding: 6px 10px !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+            pointer-events: none;
+        }
+        .signal-tooltip .leaflet-tooltip-tip {
+            border-top-color: var(--accent);
+        }
     </style>
 </head>
 <body>
@@ -418,7 +433,7 @@
                     <div class="input-row">
                         <div>
                             <label>Breite (Lat)</label>
-                            <input type="text" id="tx-lat" value="48.2334" readonly>
+                            <input type="text" id="tx-lat" value="48.2335" readonly>
                         </div>
                         <div>
                             <label>Länge (Lng)</label>
@@ -434,8 +449,8 @@
                 <div class="form-group">
                     <label>Sendeleistung (Watt)</label>
                     <div class="slider-group">
-                        <input type="range" id="tx-power" min="0.1" max="200" value="23.1" step="0.1">
-                        <span class="slider-value" id="tx-power-val">23.1 W</span>
+                        <input type="range" id="tx-power" min="0.1" max="200" value="23.9" step="0.1">
+                        <span class="slider-value" id="tx-power-val">23.9 W</span>
                     </div>
                 </div>
                 <div class="form-group">
@@ -474,8 +489,8 @@
                 <div class="form-group">
                     <label>Pfadverlust-Exponent n (Bodenwelle)</label>
                     <div class="slider-group">
-                        <input type="range" id="path-loss-n" min="2.00" max="4.00" value="3.30" step="0.05">
-                        <span class="slider-value" id="path-loss-n-val">3.30</span>
+                        <input type="range" id="path-loss-n" min="2.00" max="4.00" value="3.05" step="0.05">
+                        <span class="slider-value" id="path-loss-n-val">3.05</span>
                     </div>
                 </div>
 
@@ -490,16 +505,16 @@
                 <div class="form-group">
                     <label>Flächen-Rasterabstand (Auflösung)</label>
                     <div class="slider-group">
-                        <input type="range" id="grid-step" min="200" max="1000" value="500" step="50">
-                        <span class="slider-value" id="grid-step-val">500 m</span>
+                        <input type="range" id="grid-step" min="200" max="1000" value="700" step="50">
+                        <span class="slider-value" id="grid-step-val">700 m</span>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Simulations-Suchbereich (km)</label>
                     <div class="slider-group">
-                        <input type="range" id="sim-radius" min="10" max="200" value="50" step="5">
-                        <span class="slider-value" id="sim-radius-val">50 km</span>
+                        <input type="range" id="sim-radius" min="10" max="200" value="120" step="5">
+                        <span class="slider-value" id="sim-radius-val">120 km</span>
                     </div>
                 </div>
                 
@@ -568,7 +583,7 @@
                 </div>
                 <div class="modal-row">
                     <span class="modal-label">Version:</span>
-                    <span class="modal-val">0.5 (Standardwerte aktualisiert)</span>
+                    <span class="modal-val">0.7 (Standardwerte aktualisiert)</span>
                 </div>
                 <div class="modal-row">
                     <span class="modal-label">Entwicklungsstatus:</span>
@@ -640,8 +655,9 @@
         L.boxGridLayer = function (options) { return new L.BoxGridLayer(options); };
 
         let map, txMarker, rxMarker, boxGridLayer, profileChart;
+        let hoverTooltip = null;
         let isPicking = false, isCalculating = false, shouldCancel = false;
-        let txLat = 48.2334, txLng = 8.8359, rxLat = null, rxLng = null;
+        let txLat = 48.2335, txLng = 8.8359, rxLat = null, rxLng = null;
 
         const elevationTileCache = new Map();
 
@@ -658,6 +674,8 @@
             txMarker = L.marker([txLat, txLng], { draggable: true }).addTo(map).bindPopup("Sender (TX)");
             txMarker.on('dragend', e => updateTXPos(e.target.getLatLng().lat, e.target.getLatLng().lng));
             map.on('click', onMapClick);
+            map.on('mousemove', onMapMouseMove);
+            map.on('mouseout', hideHoverTooltip);
         }
 
         function updateTXPos(lat, lng) {
@@ -665,6 +683,75 @@
             document.getElementById('tx-lat').value = lat.toFixed(4);
             document.getElementById('tx-lng').value = lng.toFixed(4);
             txMarker.setLatLng([lat, lng]);
+        }
+
+        function dbmToSValueStr(dbm) {
+            if (dbm >= -73) {
+                const over = Math.round(dbm - (-73));
+                return over > 0 ? `S9 +${over}dB` : `S9`;
+            }
+            const sVal = Math.floor(9 - (-73 - dbm) / 6.0);
+            if (sVal < 1) return `S0`;
+            const rem = Math.round(dbm - (-73 - (9 - sVal) * 6));
+            return rem > 0 ? `S${sVal} (+${rem}dB)` : `S${sVal}`;
+        }
+
+        function hideHoverTooltip() {
+            if (hoverTooltip) {
+                map.closeTooltip(hoverTooltip);
+                hoverTooltip = null;
+            }
+        }
+
+        function onMapMouseMove(e) {
+            if (isPicking || isCalculating || !boxGridLayer || !boxGridLayer._gridPoints || boxGridLayer._gridPoints.length === 0) {
+                hideHoverTooltip();
+                return;
+            }
+
+            const mouseLat = e.latlng.lat;
+            const mouseLng = e.latlng.lng;
+            const stepMeters = parseFloat(document.getElementById('grid-step').value);
+            const searchThresholdMeters = Math.max(300, stepMeters * 0.75);
+
+            const maxDegDiff = (searchThresholdMeters / 1000) * (1 / 111.32) * 1.5;
+
+            let closestPt = null;
+            let minMinDist = searchThresholdMeters;
+
+            const grid = boxGridLayer._gridPoints;
+            for (let i = 0; i < grid.length; i++) {
+                const pt = grid[i];
+                if (Math.abs(pt.lat - mouseLat) > maxDegDiff || Math.abs(pt.lng - mouseLng) > maxDegDiff) continue;
+
+                const d = map.distance(e.latlng, [pt.lat, pt.lng]);
+                if (d < minMinDist) {
+                    minMinDist = d;
+                    closestPt = pt;
+                }
+            }
+
+            if (closestPt && closestPt.dbm !== undefined) {
+                const sStr = dbmToSValueStr(closestPt.dbm);
+                const content = `<b>Signal:</b> ${sStr}<br/>` +
+                                `<b>Pegel:</b> ${closestPt.dbm.toFixed(1)} dBm<br/>` +
+                                `<b>Distanz:</b> ${closestPt.distKm.toFixed(1)} km`;
+
+                if (!hoverTooltip) {
+                    hoverTooltip = L.tooltip({
+                        className: 'signal-tooltip',
+                        direction: 'top',
+                        offset: [0, -10],
+                        opacity: 0.95
+                    });
+                }
+                hoverTooltip.setLatLng(e.latlng).setContent(content);
+                if (!map.hasLayer(hoverTooltip)) {
+                    hoverTooltip.addTo(map);
+                }
+            } else {
+                hideHoverTooltip();
+            }
         }
 
         function onMapClick(e) {
@@ -725,7 +812,7 @@
             const pDbm = 10 * Math.log10(pWatts * 1000);
             
             // Einstellbarer Pfadverlust-Exponent n
-            const n = nExp !== undefined ? nExp : 3.30;
+            const n = nExp !== undefined ? nExp : 3.05;
             
             // Dämpfung über Grund mit n-Exponent
             const pathLossDb = (20 * Math.log10(freqMHz)) + (10 * n * Math.log10(d)) - 27.55 - gTxDbi - gRxDbi;
@@ -773,6 +860,7 @@
             }
 
             boxGridLayer.clear();
+            hideHoverTooltip();
 
             const pWatts = parseFloat(document.getElementById('tx-power').value);
             const antGain = parseFloat(document.getElementById('ant-type').value);
@@ -810,7 +898,7 @@
                 const rxPower = calculateGroundwaveSignal(currentDist, pWatts, antGain, txH, rxH, maxObstaclePenetration, dbPerMeter, nExp);
                 const color = dbmToColor(rxPower) || '#000000';
 
-                points.push({ lat: curLat, lng: curLng, color: color });
+                points.push({ lat: curLat, lng: curLng, color: color, dbm: rxPower, distKm: currentDist });
             }
 
             boxGridLayer.setGridPoints(points);
@@ -826,6 +914,7 @@
             document.getElementById('progress-container').style.display = 'block';
 
             boxGridLayer.clear();
+            hideHoverTooltip();
 
             const radiusKm = parseFloat(document.getElementById('sim-radius').value);
             const stepMeters = parseFloat(document.getElementById('grid-step').value);
@@ -885,7 +974,7 @@
                     const color = dbmToColor(rxPower);
 
                     if (color) {
-                        allGridPoints.push({ lat: lat, lng: lng, color: color });
+                        allGridPoints.push({ lat: lat, lng: lng, color: color, dbm: rxPower, distKm: distKm });
                     }
                 }
 
